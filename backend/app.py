@@ -108,6 +108,22 @@ def afegeix_canco_a_playlist(nom):
     return jsonify({"ok": True})
 
 
+@app.route("/api/playlists/<nom>/cancons/reordena", methods=["POST"])
+def reordena_cancons_playlist(nom):
+    nous = request.get_json().get("cancons", [])
+    playlists = llegir_playlists()
+    if nom not in playlists:
+        return jsonify({"error": "Playlist no trobada"}), 404
+    actuals = playlists[nom]
+    nou_ordre = [c for c in nous if c in actuals]
+    for c in actuals:
+        if c not in nou_ordre:
+            nou_ordre.append(c)
+    playlists[nom] = nou_ordre
+    desar_playlists(playlists)
+    return jsonify({"ok": True})
+
+
 @app.route("/api/playlists/<nom>/cancons/<path:canco>", methods=["DELETE"])
 def treu_canco_de_playlist(nom, canco):
     playlists = llegir_playlists()

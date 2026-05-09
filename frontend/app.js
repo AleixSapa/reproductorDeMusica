@@ -4,9 +4,11 @@ let playlists = {};
 let cuaActual = [];
 let nomCuaActual = "";
 let indexActual = -1;
-let vistaModal = "graella"; // "graella" o "detall"
+let vistaModal = "graella"; // "graella", "detall" o "afegir"
+let cancoSeleccionades = new Set(); // cançons seleccionades a la vista "afegir"
 let nomDetall = "";          // quina playlist s'està veient en detall
-let indexArrossegant = null; // posició de la playlist que s'està arrossegant
+let indexArrossegant = null;       // posició de la playlist que s'està arrossegant
+let indexCancoArrossegant = null;  // posició de la cançó (dins playlist) que s'està arrossegant
 
 // ==================== ELEMENTS DEL DOM ====================
 const reproductor = document.getElementById("reproductor");
@@ -23,6 +25,11 @@ const graellaPlaylists = document.getElementById("graella-playlists");
 const detallNom = document.getElementById("detall-nom");
 const detallQuantitat = document.getElementById("detall-quantitat");
 const detallCancons = document.getElementById("detall-cancons");
+const vistaAfegir = document.getElementById("vista-afegir");
+const afegirTitol = document.getElementById("afegir-titol");
+const afegirCerca = document.getElementById("afegir-cerca");
+const afegirLlista = document.getElementById("afegir-llista");
+const botoConfirmarAfegir = document.getElementById("boto-confirmar-afegir");
 
 // ==================== REPRODUCCIÓ ====================
 function reprodueix(index) {
@@ -121,6 +128,7 @@ function mostraGraella() {
   nomDetall = "";
   vistaGraella.hidden = false;
   vistaDetall.hidden = true;
+  vistaAfegir.hidden = true;
   pintaGraella();
 }
 
@@ -129,12 +137,26 @@ function mostraDetall(nom) {
   nomDetall = nom;
   vistaGraella.hidden = true;
   vistaDetall.hidden = false;
+  vistaAfegir.hidden = true;
   pintaDetall();
+}
+
+function mostraAfegir() {
+  if (!nomDetall) return;
+  vistaModal = "afegir";
+  cancoSeleccionades.clear();
+  vistaGraella.hidden = true;
+  vistaDetall.hidden = true;
+  vistaAfegir.hidden = false;
+  afegirTitol.textContent = "📋 " + nomDetall + " — Afegir cançons";
+  afegirCerca.value = "";
+  pintaAfegir();
 }
 
 document.getElementById("boto-obrir-playlists").onclick = obreModal;
 document.getElementById("boto-tancar-modal").onclick = tancaModal;
 document.getElementById("boto-tornar-graella").onclick = mostraGraella;
+document.getElementById("boto-tornar-detall").onclick = () => mostraDetall(nomDetall);
 
 modal.addEventListener("click", (e) => {
   if (e.target === modal) tancaModal();
@@ -229,6 +251,21 @@ async function reordenaPlaylists(desDe, fins) {
   await carregaPlaylists();
 }
 
+async function reordenaCancons(nomPL, desDe, fins) {
+  const cancons = [...playlists[nomPL]];
+  const [moguda] = cancons.splice(desDe, 1);
+  cancons.splice(fins, 0, moguda);
+  await fetch(
+    "/api/playlists/" + encodeURIComponent(nomPL) + "/cancons/reordena",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cancons: cancons }),
+    }
+  );
+  await carregaPlaylists();
+}
+
 // ==================== DETALL D'UNA PLAYLIST ====================
 function pintaDetall() {
   const nom = nomDetall;
@@ -248,8 +285,63 @@ function pintaDetall() {
     buit.textContent = "Aquesta playlist és buida. Cerca cançons a sota per afegir-ne!";
     detallCancons.appendChild(buit);
   } else {
-    cancons.forEach((canco) => {
+    cancons.forEach((canco, i) => {
       const li = document.createElement("li");
+      li.draggable = true;
+      li.dataset.indexCanco = i;
+
+      li.addEventListener("dragstart", (e) => {
+        indexCancoArrossegant = i;
+        li.classList.add("arrossegant");
+        e.dataTransfer.effectAllowed = "move";
+      });
+
+      li.addEventListener("dragend", () => {
+        li.classList.remove("arrossegant");
+        document
+          .querySelectorAll("#detall-cancons li.sobre")
+          .forEach((el) => el.classList.remove("sobre"));
+      });
+
+      li.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (
+          indexCancoArrossegant !== null &&
+          indexCancoArrossegant !== i
+        ) {
+          li.classList.add("sobre");
+        }
+      });
+
+      li.addEventListener("dragleave", () => {
+        li.classList.remove("sobre");
+      });
+
+      li.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        li.classList.remove("sobre");
+        if (
+          indexCancoArrossegant === null ||
+          indexCancoArrossegant === i
+        )
+          return;
+        reordenaCancons(nom, indexCancoArrossegant, i);
+        indexCancoArrossegant = null;
+      });
+
+      const botoPlay = document.createElement("button");
+      botoPlay.textContent = "▶";
+      botoPlay.className = "boto-play-canco";
+      botoPlay.onclick = (e) => {
+        e.stopPropagation();
+        activaCua([...cancons], nom);
+        reprodueix(i);
+        tancaModal();
+      };
+      li.appendChild(botoPlay);
+
       const text = document.createElement("span");
       text.textContent = canco;
       li.appendChild(text);
@@ -257,7 +349,10 @@ function pintaDetall() {
       const botoTreu = document.createElement("button");
       botoTreu.textContent = "✕";
       botoTreu.className = "boto-perill";
-      botoTreu.onclick = () => treuCancoDePlaylist(nom, canco);
+      botoTreu.onclick = (e) => {
+        e.stopPropagation();
+        treuCancoDePlaylist(nom, canco);
+      };
       li.appendChild(botoTreu);
       detallCancons.appendChild(li);
     });
@@ -272,8 +367,93 @@ function pintaDetall() {
     reprodueix(0);
     tancaModal();
   };
+  document.getElementById("detall-afegir").onclick = mostraAfegir;
   document.getElementById("detall-esborrar").onclick = () => esborraPlaylist(nom);
 }
+
+// ==================== VISTA AFEGIR CANÇONS ====================
+function pintaAfegir() {
+  afegirLlista.innerHTML = "";
+  const aDins = playlists[nomDetall] || [];
+  const text = afegirCerca.value.toLowerCase().trim();
+
+  const disponibles = totesCancons.filter(
+    (c) => !aDins.includes(c) && c.toLowerCase().includes(text)
+  );
+
+  if (disponibles.length === 0) {
+    const buit = document.createElement("li");
+    buit.className = "missatge-buit";
+    buit.textContent =
+      text === ""
+        ? "No queden cançons per afegir — ja estan totes a la playlist!"
+        : "Cap cançó coincideix amb la cerca.";
+    afegirLlista.appendChild(buit);
+    actualitzaBotoConfirmar();
+    return;
+  }
+
+  disponibles.forEach((canco) => {
+    const li = document.createElement("li");
+    li.className = "item-afegir";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = cancoSeleccionades.has(canco);
+    checkbox.onchange = () => {
+      if (checkbox.checked) cancoSeleccionades.add(canco);
+      else cancoSeleccionades.delete(canco);
+      actualitzaBotoConfirmar();
+    };
+
+    const label = document.createElement("label");
+    label.className = "etiqueta-afegir";
+    label.appendChild(checkbox);
+    const span = document.createElement("span");
+    span.textContent = canco;
+    label.appendChild(span);
+
+    li.appendChild(label);
+    afegirLlista.appendChild(li);
+  });
+
+  actualitzaBotoConfirmar();
+}
+
+function actualitzaBotoConfirmar() {
+  const n = cancoSeleccionades.size;
+  if (n === 0) {
+    botoConfirmarAfegir.textContent = "✅ Afegir cançons seleccionades";
+    botoConfirmarAfegir.disabled = true;
+  } else if (n === 1) {
+    botoConfirmarAfegir.textContent = "✅ Afegir 1 cançó";
+    botoConfirmarAfegir.disabled = false;
+  } else {
+    botoConfirmarAfegir.textContent = "✅ Afegir " + n + " cançons";
+    botoConfirmarAfegir.disabled = false;
+  }
+}
+
+async function confirmaAfegir() {
+  const cancons = Array.from(cancoSeleccionades);
+  if (cancons.length === 0) return;
+  for (const canco of cancons) {
+    await fetch(
+      "/api/playlists/" + encodeURIComponent(nomDetall) + "/cancons",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ canco: canco }),
+      }
+    );
+  }
+  cancoSeleccionades.clear();
+  await carregaPlaylists();
+  mostraDetall(nomDetall);
+}
+
+afegirCerca.addEventListener("input", pintaAfegir);
+botoConfirmarAfegir.onclick = confirmaAfegir;
 
 // ==================== ACCIONS DE PLAYLISTS ====================
 async function carregaPlaylists() {
@@ -282,6 +462,7 @@ async function carregaPlaylists() {
   if (modal.classList.contains("obert")) {
     if (vistaModal === "graella") pintaGraella();
     else if (vistaModal === "detall") pintaDetall();
+    else if (vistaModal === "afegir") pintaAfegir();
   }
   pintaLlistaCancons();
 }

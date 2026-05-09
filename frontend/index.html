@@ -57,12 +57,22 @@
           </div>
           <div class="detall-accions">
             <button id="detall-reproduir">▶ Reproduir tota</button>
+            <button id="detall-afegir">➕ Afegir cançons</button>
             <button id="detall-esborrar" class="boto-perill">🗑️ Esborrar playlist</button>
           </div>
           <ul id="detall-cancons"></ul>
           <p class="pista">
-            💡 Per afegir cançons, fes-ho des de la llista principal amb el selector "➕ Afegir a..."
+            💡 Arrossega les cançons per reordenar-les. Clica ✕ per treure-les.
           </p>
+        </div>
+
+        <!-- Vista 3: afegir cançons a una playlist -->
+        <div id="vista-afegir" hidden>
+          <button id="boto-tornar-detall" class="boto-tornar">← Tornar a la playlist</button>
+          <h3 id="afegir-titol"></h3>
+          <input type="search" id="afegir-cerca" placeholder="🔍 Buscar cançó..." />
+          <ul id="afegir-llista"></ul>
+          <button id="boto-confirmar-afegir">✅ Afegir cançons seleccionades</button>
         </div>
       </div>
     </div>

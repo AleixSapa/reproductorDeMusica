@@ -460,6 +460,24 @@ ul {
   justify-content: space-between;
   font-size: 0.9rem;
   gap: 8px;
+  cursor: grab;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, background 0.15s, opacity 0.2s;
+  user-select: none;
+}
+
+#detall-cancons li:active {
+  cursor: grabbing;
+}
+
+#detall-cancons li.arrossegant {
+  opacity: 0.4;
+}
+
+#detall-cancons li.sobre {
+  border-color: #fbbf24;
+  border-style: dashed;
+  background: rgba(251, 191, 36, 0.15);
 }
 
 #detall-cancons li span {
@@ -484,6 +502,82 @@ ul {
   border-radius: 8px;
   border-left: 3px solid #8b5cf6;
   margin-top: 8px;
+}
+
+/* ==================== VISTA AFEGIR CANÇONS ==================== */
+#vista-afegir {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#afegir-titol {
+  font-size: 1.4rem;
+  color: #fff;
+}
+
+#afegir-llista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 350px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.item-afegir {
+  background: rgba(26, 26, 46, 0.6);
+  border-radius: 8px;
+  margin: 4px 0;
+  transition: background 0.15s;
+}
+
+.item-afegir:hover {
+  background: rgba(60, 60, 90, 0.7);
+}
+
+.etiqueta-afegir {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.9rem;
+  color: #e5e5e5;
+  width: 100%;
+}
+
+.etiqueta-afegir input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #8b5cf6;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.etiqueta-afegir span {
+  flex: 1;
+  word-break: break-word;
+}
+
+#boto-confirmar-afegir {
+  align-self: stretch;
+  padding: 12px 16px !important;
+  font-size: 1rem !important;
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+}
+
+#boto-confirmar-afegir:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+}
+
+#boto-confirmar-afegir:disabled {
+  background: rgba(100, 100, 120, 0.5) !important;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* ==================== AFEGIR CANÇONS (cerca dins playlist) ==================== */
