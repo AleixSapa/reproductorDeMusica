@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ca">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reproductor de música</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>🎵 El meu reproductor de música</h1>
+
+    <div>
+      <button id="boto-anterior">⏮ Anterior</button>
+      <button id="boto-seguent">⏭ Següent</button>
+      <button id="boto-totes">📃 Tornar a totes les cançons</button>
+    </div>
+
+    <p id="titol-actual">Cap cançó seleccionada</p>
+    <p id="cua-actual"></p>
+
+    <audio id="reproductor" controls></audio>
+
+    <h2>📋 Les meves playlists</h2>
+    <div>
+      <input type="text" id="nom-nova-playlist" placeholder="Nom de la nova playlist..." />
+      <button id="boto-crear-playlist">➕ Crear</button>
+    </div>
+    <div id="contenidor-playlists"></div>
+
+    <h2>🎵 Llista de cançons</h2>
+
+    <input type="search" id="cercador" placeholder="🔍 Buscar cançó..." />
+    <p id="resultat-cerca"></p>
+
+    <ul id="llista-cancons">
+      <li>Carregant cançons...</li>
+    </ul>
+
+    <script src="app.js"></script>
+  </body>
+</html>
