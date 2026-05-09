@@ -73,6 +73,19 @@ def crea_playlist():
     return jsonify({"ok": True})
 
 
+@app.route("/api/playlists/reordena", methods=["POST"])
+def reordena_playlists():
+    nous_noms = request.get_json().get("noms", [])
+    playlists = llegir_playlists()
+    nou_ordre = {nom: playlists[nom] for nom in nous_noms if nom in playlists}
+    # Conserva qualsevol playlist que no estigués a la llista (per seguretat)
+    for nom, cançons in playlists.items():
+        if nom not in nou_ordre:
+            nou_ordre[nom] = cançons
+    desar_playlists(nou_ordre)
+    return jsonify({"ok": True})
+
+
 @app.route("/api/playlists/<nom>", methods=["DELETE"])
 def esborra_playlist(nom):
     playlists = llegir_playlists()

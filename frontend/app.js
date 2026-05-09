@@ -1,19 +1,28 @@
 // ==================== ESTAT ====================
-let totesCancons = [];   // totes les cançons del servidor
-let playlists = {};       // {"nom": ["cancio1.mp3", ...]}
-let cuaActual = [];       // llista que sona ara (totes o d'una playlist)
-let nomCuaActual = "";    // "" = totes les cançons, sinó nom de la playlist
-let indexActual = -1;     // posició dins de cuaActual
-let estatCerquesPlaylists = {}; // recorda la cerca de cada playlist {"nom": "text"}
+let totesCancons = [];
+let playlists = {};
+let cuaActual = [];
+let nomCuaActual = "";
+let indexActual = -1;
+let vistaModal = "graella"; // "graella" o "detall"
+let nomDetall = "";          // quina playlist s'està veient en detall
+let indexArrossegant = null; // posició de la playlist que s'està arrossegant
 
 // ==================== ELEMENTS DEL DOM ====================
 const reproductor = document.getElementById("reproductor");
 const titolActual = document.getElementById("titol-actual");
 const cuaActualText = document.getElementById("cua-actual");
 const llista = document.getElementById("llista-cancons");
-const contenidorPlaylists = document.getElementById("contenidor-playlists");
 const cercador = document.getElementById("cercador");
 const resultatCerca = document.getElementById("resultat-cerca");
+
+const modal = document.getElementById("modal-playlists");
+const vistaGraella = document.getElementById("vista-graella");
+const vistaDetall = document.getElementById("vista-detall");
+const graellaPlaylists = document.getElementById("graella-playlists");
+const detallNom = document.getElementById("detall-nom");
+const detallQuantitat = document.getElementById("detall-quantitat");
+const detallCancons = document.getElementById("detall-cancons");
 
 // ==================== REPRODUCCIÓ ====================
 function reprodueix(index) {
@@ -57,13 +66,12 @@ document.getElementById("boto-totes").onclick = () => {
 };
 reproductor.addEventListener("ended", seguent);
 
-// ==================== LLISTA DE CANÇONS ====================
+// ==================== LLISTA DE CANÇONS PRINCIPAL ====================
 function pintaLlistaCancons() {
   llista.innerHTML = "";
   totesCancons.forEach((canco, i) => {
     const item = document.createElement("li");
 
-    // Botó play
     const botoPlay = document.createElement("button");
     botoPlay.textContent = "▶";
     botoPlay.onclick = () => {
@@ -73,7 +81,7 @@ function pintaLlistaCancons() {
     item.appendChild(botoPlay);
     item.append(" " + canco + " ");
 
-    // Selector per afegir a una playlist
+    // Selector ràpid per afegir directament a una playlist
     const selector = document.createElement("select");
     const opcioPredeterminada = document.createElement("option");
     opcioPredeterminada.textContent = "➕ Afegir a...";
@@ -98,112 +106,184 @@ function pintaLlistaCancons() {
   });
 }
 
-// ==================== PLAYLISTS ====================
+// ==================== MODAL ====================
+function obreModal() {
+  modal.classList.add("obert");
+  mostraGraella();
+}
+
+function tancaModal() {
+  modal.classList.remove("obert");
+}
+
+function mostraGraella() {
+  vistaModal = "graella";
+  nomDetall = "";
+  vistaGraella.hidden = false;
+  vistaDetall.hidden = true;
+  pintaGraella();
+}
+
+function mostraDetall(nom) {
+  vistaModal = "detall";
+  nomDetall = nom;
+  vistaGraella.hidden = true;
+  vistaDetall.hidden = false;
+  pintaDetall();
+}
+
+document.getElementById("boto-obrir-playlists").onclick = obreModal;
+document.getElementById("boto-tancar-modal").onclick = tancaModal;
+document.getElementById("boto-tornar-graella").onclick = mostraGraella;
+
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) tancaModal();
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && modal.classList.contains("obert")) tancaModal();
+});
+
+// ==================== GRAELLA DE PLAYLISTS ====================
+function pintaGraella() {
+  graellaPlaylists.innerHTML = "";
+  const noms = Object.keys(playlists);
+  if (noms.length === 0) {
+    const buit = document.createElement("p");
+    buit.className = "missatge-buit";
+    buit.textContent = "Encara no tens cap playlist. Crea'n una a sota!";
+    graellaPlaylists.appendChild(buit);
+    return;
+  }
+  noms.forEach((nom, index) => {
+    const cancons = playlists[nom];
+    const targeta = document.createElement("div");
+    targeta.className = "targeta-playlist";
+    targeta.draggable = true;
+    targeta.dataset.index = index;
+    targeta.onclick = () => mostraDetall(nom);
+
+    targeta.addEventListener("dragstart", (e) => {
+      indexArrossegant = index;
+      targeta.classList.add("arrossegant");
+      e.dataTransfer.effectAllowed = "move";
+    });
+
+    targeta.addEventListener("dragend", () => {
+      targeta.classList.remove("arrossegant");
+      document.querySelectorAll(".targeta-playlist.sobre").forEach((t) => {
+        t.classList.remove("sobre");
+      });
+    });
+
+    targeta.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      if (indexArrossegant !== null && indexArrossegant !== index) {
+        targeta.classList.add("sobre");
+      }
+    });
+
+    targeta.addEventListener("dragleave", () => {
+      targeta.classList.remove("sobre");
+    });
+
+    targeta.addEventListener("drop", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      targeta.classList.remove("sobre");
+      if (indexArrossegant === null || indexArrossegant === index) return;
+      reordenaPlaylists(indexArrossegant, index);
+      indexArrossegant = null;
+    });
+
+    const icona = document.createElement("div");
+    icona.className = "icona";
+    icona.textContent = "📋";
+    targeta.appendChild(icona);
+
+    const nomEl = document.createElement("div");
+    nomEl.className = "nom";
+    nomEl.textContent = nom;
+    targeta.appendChild(nomEl);
+
+    const quantitat = document.createElement("div");
+    quantitat.className = "quantitat";
+    quantitat.textContent =
+      cancons.length + (cancons.length === 1 ? " cançó" : " cançons");
+    targeta.appendChild(quantitat);
+
+    graellaPlaylists.appendChild(targeta);
+  });
+}
+
+async function reordenaPlaylists(desDe, fins) {
+  const noms = Object.keys(playlists);
+  const [moguda] = noms.splice(desDe, 1);
+  noms.splice(fins, 0, moguda);
+  await fetch("/api/playlists/reordena", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ noms: noms }),
+  });
+  await carregaPlaylists();
+}
+
+// ==================== DETALL D'UNA PLAYLIST ====================
+function pintaDetall() {
+  const nom = nomDetall;
+  if (!playlists[nom]) {
+    mostraGraella();
+    return;
+  }
+  const cancons = playlists[nom];
+  detallNom.textContent = "📋 " + nom;
+  detallQuantitat.textContent =
+    cancons.length + (cancons.length === 1 ? " cançó" : " cançons");
+
+  detallCancons.innerHTML = "";
+  if (cancons.length === 0) {
+    const buit = document.createElement("li");
+    buit.className = "missatge-buit";
+    buit.textContent = "Aquesta playlist és buida. Cerca cançons a sota per afegir-ne!";
+    detallCancons.appendChild(buit);
+  } else {
+    cancons.forEach((canco) => {
+      const li = document.createElement("li");
+      const text = document.createElement("span");
+      text.textContent = canco;
+      li.appendChild(text);
+
+      const botoTreu = document.createElement("button");
+      botoTreu.textContent = "✕";
+      botoTreu.className = "boto-perill";
+      botoTreu.onclick = () => treuCancoDePlaylist(nom, canco);
+      li.appendChild(botoTreu);
+      detallCancons.appendChild(li);
+    });
+  }
+
+  document.getElementById("detall-reproduir").onclick = () => {
+    if (cancons.length === 0) {
+      alert("Aquesta playlist és buida!");
+      return;
+    }
+    activaCua([...cancons], nom);
+    reprodueix(0);
+    tancaModal();
+  };
+  document.getElementById("detall-esborrar").onclick = () => esborraPlaylist(nom);
+}
+
+// ==================== ACCIONS DE PLAYLISTS ====================
 async function carregaPlaylists() {
   const r = await fetch("/api/playlists");
   playlists = await r.json();
-  pintaPlaylists();
-  pintaLlistaCancons(); // recarreguem el selector "Afegir a..." amb les playlists noves
-}
-
-function pintaPlaylists() {
-  contenidorPlaylists.innerHTML = "";
-  const noms = Object.keys(playlists);
-  if (noms.length === 0) {
-    contenidorPlaylists.innerHTML = "<p><i>Encara no tens cap playlist. Crea'n una!</i></p>";
-    return;
+  if (modal.classList.contains("obert")) {
+    if (vistaModal === "graella") pintaGraella();
+    else if (vistaModal === "detall") pintaDetall();
   }
-  noms.forEach((nom) => {
-    const cancons = playlists[nom];
-    const div = document.createElement("div");
-
-    const titol = document.createElement("h3");
-    titol.textContent = "📋 " + nom + " (" + cancons.length + " cançons)";
-    div.appendChild(titol);
-
-    const botoPlay = document.createElement("button");
-    botoPlay.textContent = "▶ Reproduir tota";
-    botoPlay.onclick = () => {
-      if (cancons.length === 0) {
-        alert("Aquesta playlist és buida!");
-        return;
-      }
-      activaCua([...cancons], nom);
-      reprodueix(0);
-    };
-    div.appendChild(botoPlay);
-
-    const botoEsborra = document.createElement("button");
-    botoEsborra.textContent = "🗑️ Esborrar playlist";
-    botoEsborra.onclick = () => esborraPlaylist(nom);
-    div.appendChild(botoEsborra);
-
-    const ul = document.createElement("ul");
-    cancons.forEach((canco) => {
-      const li = document.createElement("li");
-      li.textContent = canco + " ";
-      const botoTreu = document.createElement("button");
-      botoTreu.textContent = "✕";
-      botoTreu.onclick = () => treuCancoDePlaylist(nom, canco);
-      li.appendChild(botoTreu);
-      ul.appendChild(li);
-    });
-    div.appendChild(ul);
-
-    // --- Buscador per afegir cançons a aquesta playlist ---
-    const cercaDiv = document.createElement("div");
-    cercaDiv.className = "afegir-cancons";
-
-    const cercaInput = document.createElement("input");
-    cercaInput.type = "search";
-    cercaInput.placeholder = "🔍 Cerca cançons per afegir...";
-
-    const suggerimentsDiv = document.createElement("div");
-    suggerimentsDiv.className = "suggeriments";
-
-    function actualitzaSuggeriments() {
-      const text = cercaInput.value.toLowerCase().trim();
-      suggerimentsDiv.innerHTML = "";
-      if (!text) return;
-
-      const candidats = totesCancons.filter(
-        (c) => c.toLowerCase().includes(text) && !cancons.includes(c)
-      );
-
-      if (candidats.length === 0) {
-        const p = document.createElement("p");
-        p.className = "sense-resultats";
-        p.textContent = "No hi ha cançons que coincideixin (o ja estan totes afegides)";
-        suggerimentsDiv.appendChild(p);
-        return;
-      }
-
-      candidats.forEach((c) => {
-        const item = document.createElement("div");
-        item.className = "suggeriment";
-        item.textContent = "➕ " + c;
-        item.onclick = () => afegeixCancoAPlaylist(nom, c);
-        suggerimentsDiv.appendChild(item);
-      });
-    }
-
-    cercaInput.addEventListener("input", () => {
-      estatCerquesPlaylists[nom] = cercaInput.value;
-      actualitzaSuggeriments();
-    });
-
-    cercaDiv.appendChild(cercaInput);
-    cercaDiv.appendChild(suggerimentsDiv);
-    div.appendChild(cercaDiv);
-
-    // Si estàvem cercant abans del re-render, restaura el text
-    if (estatCerquesPlaylists[nom]) {
-      cercaInput.value = estatCerquesPlaylists[nom];
-      actualitzaSuggeriments();
-    }
-
-    contenidorPlaylists.appendChild(div);
-  });
+  pintaLlistaCancons();
 }
 
 async function creaPlaylist() {
@@ -230,6 +310,7 @@ async function creaPlaylist() {
 async function esborraPlaylist(nom) {
   if (!confirm("Segur que vols esborrar la playlist '" + nom + "'?")) return;
   await fetch("/api/playlists/" + encodeURIComponent(nom), { method: "DELETE" });
+  if (nomDetall === nom) mostraGraella();
   await carregaPlaylists();
 }
 
@@ -253,7 +334,7 @@ async function treuCancoDePlaylist(nomPL, canco) {
 
 document.getElementById("boto-crear-playlist").onclick = creaPlaylist;
 
-// ==================== BUSCADOR ====================
+// ==================== BUSCADOR (llista principal) ====================
 cercador.addEventListener("input", () => {
   const text = cercador.value.toLowerCase();
   const items = llista.querySelectorAll("li");

@@ -14,19 +14,13 @@
       <button id="boto-anterior">⏮ Anterior</button>
       <button id="boto-seguent">⏭ Següent</button>
       <button id="boto-totes">📃 Tornar a totes les cançons</button>
+      <button id="boto-obrir-playlists" class="boto-destacat">📋 Playlists</button>
     </div>
 
     <p id="titol-actual">Cap cançó seleccionada</p>
     <p id="cua-actual"></p>
 
     <audio id="reproductor" controls></audio>
-
-    <h2>📋 Les meves playlists</h2>
-    <div>
-      <input type="text" id="nom-nova-playlist" placeholder="Nom de la nova playlist..." />
-      <button id="boto-crear-playlist">➕ Crear</button>
-    </div>
-    <div id="contenidor-playlists"></div>
 
     <h2>🎵 Llista de cançons</h2>
 
@@ -36,6 +30,42 @@
     <ul id="llista-cancons">
       <li>Carregant cançons...</li>
     </ul>
+
+    <!-- ========== Modal de Playlists ========== -->
+    <div id="modal-playlists" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-titol">📋 Playlists</h2>
+          <button id="boto-tancar-modal" class="boto-icon">✕</button>
+        </div>
+
+        <!-- Vista 1: graella de playlists -->
+        <div id="vista-graella">
+          <div id="graella-playlists" class="graella"></div>
+          <div class="crear-nova">
+            <input type="text" id="nom-nova-playlist" placeholder="Nom de la nova playlist..." />
+            <button id="boto-crear-playlist">➕ Crear</button>
+          </div>
+        </div>
+
+        <!-- Vista 2: detall d'una playlist -->
+        <div id="vista-detall" hidden>
+          <button id="boto-tornar-graella" class="boto-tornar">← Tornar</button>
+          <div class="detall-info">
+            <h3 id="detall-nom"></h3>
+            <p id="detall-quantitat"></p>
+          </div>
+          <div class="detall-accions">
+            <button id="detall-reproduir">▶ Reproduir tota</button>
+            <button id="detall-esborrar" class="boto-perill">🗑️ Esborrar playlist</button>
+          </div>
+          <ul id="detall-cancons"></ul>
+          <p class="pista">
+            💡 Per afegir cançons, fes-ho des de la llista principal amb el selector "➕ Afegir a..."
+          </p>
+        </div>
+      </div>
+    </div>
 
     <script src="app.js"></script>
   </body>
